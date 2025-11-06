@@ -1,6 +1,13 @@
 [package]
 name = "operaton-task-worker"
+description = "A task worker for running service tasks with operaton"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+reqwest = "0.12"
+serde = "1.0"
+config = "0.15"
+url = { version = "2.5", features = ["default", "serde"] }
+log = "0.4"
+env_logger = "0.11"

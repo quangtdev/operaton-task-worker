@@ -1,0 +1,77 @@
+use serde::{Deserialize, Serialize};
+
+use url::Url;
+
+/// The struct contains all config params for running the task worker
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ConfigParams {
+    /// The URL where operaton can be found
+    #[serde(default = "default_url")]
+    url: Url,
+
+    /// The username for authenticating with the REST API
+    /// - If empty, no authentication will be used (default).
+    #[serde(default = "String::new")]
+    username: String,
+
+    /// The password for authenticating with the REST API
+    /// - If empty, no authentication will be used (default).
+    #[serde(default = "String::new")]
+    password: String
+}
+
+impl ConfigParams {
+    pub fn url(&self) -> &Url {
+        &self.url
+    }
+
+    pub fn username(&self) -> &str {
+        &self.username
+    }
+
+    pub fn password(&self) -> &str {
+        &self.password
+    }
+}
+
+fn default_url() -> Url {
+    Url::parse("http://localhost:8080").unwrap()
+}
+
+/// An Operaton Service Task with its description elements
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceTask {
+    activity_id: String,
+    process_instance_id: String,
+    suspended: bool,
+    topic_name: String,
+    priority: usize,
+    business_key: String,
+}
+
+impl ServiceTask {
+    pub fn activity_id(&self) -> &str {
+        &self.activity_id
+    }
+
+    pub fn process_instance_id(&self) -> &str {
+        &self.process_instance_id
+    }
+
+    pub fn suspended(&self) -> bool {
+        self.suspended
+    }
+
+    pub fn topic_name(&self) -> &str {
+        &self.topic_name
+    }
+
+    pub fn priority(&self) -> usize {
+        self.priority
+    }
+
+    pub fn business_key(&self) -> &str {
+        &self.business_key
+    }
+}
