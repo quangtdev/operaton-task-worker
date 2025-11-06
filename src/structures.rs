@@ -17,7 +17,11 @@ pub struct ConfigParams {
     /// The password for authenticating with the REST API
     /// - If empty, no authentication will be used (default).
     #[serde(default = "String::new")]
-    password: String
+    password: String,
+
+    /// The interval in milliseconds for polling the Operaton Task Worker for new tasks
+    #[serde(default = "default_poll_intervall")]
+    poll_interval: usize,
 }
 
 impl ConfigParams {
@@ -32,11 +36,18 @@ impl ConfigParams {
     pub fn password(&self) -> &str {
         &self.password
     }
+
+    pub fn poll_interval(&self) -> usize {
+        self.poll_interval
+    }
 }
 
 fn default_url() -> Url {
     Url::parse("http://localhost:8080").unwrap()
 }
+
+/// The default poll interval in milliseconds
+fn default_poll_intervall() -> usize { 500 }
 
 /// An Operaton Service Task with its description elements
 #[derive(Serialize, Deserialize, Clone, Debug)]

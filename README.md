@@ -8,10 +8,10 @@ of the tasks and updates the Operaton Task Service with the results.
 
 Operaton Task Worker uses the following environment variables:
 
-- `OPERATON_TASK_SERVICE_URL` - URL of the Operaton Task Service
-- `OPERATON_TASK_SERVICE_USERNAME` - Username for the Operaton Task Service (leave empty for anonymous access)
-- `OPERATON_TASK_SERVICE_PASSWORD` - Password for the Operaton Task Service (leave empty for anonymous access)
-- `OPERATON_TASK_SERVICE_POLL_INTERVAL` - Interval in milliseconds for polling the Operaton Task Service for new tasks
+- `OPERATON_TASK_WORKER_URL` - URL of the Operaton Task Service
+- `OPERATON_TASK_WORKER_USERNAME` - Username for the Operaton Task Service (leave empty for anonymous access)
+- `OPERATON_TASK_WORKER_PASSWORD` - Password for the Operaton Task Service (leave empty for anonymous access)
+- `OPERATON_TASK_WORKER_POLL_INTERVAL` - Interval in milliseconds for polling the Operaton Task Service for new tasks
 - `RUST_LOG` - Logging level for the application, e.g. `info,operaton_task_worker=debug`
 
 ## Development Setup

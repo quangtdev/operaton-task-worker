@@ -12,6 +12,11 @@ use structures::ConfigParams;
 use log::{debug, error, warn, log_enabled, info, Level, trace};
 use crate::structures::ServiceTask;
 
+/// The prefix for all environment variables used by Operaton Task Worker
+///
+/// Note: This does not apply for Rust-specific environment variables such as `LOGLEVEL`.
+const ENV_PREFIX: &str = "OPERATON_TASK_WORKER";
+
 #[tokio::main]
 async fn main() {
     // Get the parameters from the environment variables
@@ -25,11 +30,11 @@ async fn main() {
         warn!("No authentication set up. Operaton should be protected by authentication in productive use.");
     }
 
-    info!("Enter the main loop");
+    trace!("Enter the main loop");
 
     loop {
         info!("Test");
-        match get_open_service_tasks(config).await {
+        match get_open_service_tasks(&config).await {
             Ok(service_tasks) => {
                 trace!(
                     "We received {} open Service Tasks from Operaton.",
@@ -38,11 +43,13 @@ async fn main() {
             },
             Err(error) => error!("We were unable to receive and parse any Service Tasks. Error: {:#}", error)
         }
-        break;
+
+        // Wait for the in `config.poll_interval` milliseconds
+        tokio::time::sleep(tokio::time::Duration::from_millis(config.poll_interval() as u64)).await;
     }
 }
 
-async fn get_open_service_tasks(config: ConfigParams) -> Result<Vec<ServiceTask>, Box<dyn Error>> {
+async fn get_open_service_tasks(config: &ConfigParams) -> Result<Vec<ServiceTask>, Box<dyn Error>> {
     let mut service_tasks_endpoint = config.url().clone();
     service_tasks_endpoint.set_path("engine-rest/external-task");
     info!("Fetch data at {}", service_tasks_endpoint.to_string());
@@ -77,7 +84,7 @@ async fn get_open_service_tasks(config: ConfigParams) -> Result<Vec<ServiceTask>
 /// happen because [ConfigParams] provides default values for all configured entries.
 fn load_config() -> ConfigParams {
     let settings = Config::builder()
-        .add_source(config::Environment::with_prefix("OTW"))
+        .add_source(config::Environment::with_prefix(ENV_PREFIX))
         .build()
         .unwrap();
 
