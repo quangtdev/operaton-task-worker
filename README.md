@@ -1,4 +1,4 @@
-# Operaton Task Worker for the Data Management Processes at Energy 2.0
+# Operaton Task Worker for Data Management Processes at Energy Lab 2.0
 
 This project implements a basic [Operaton](https://operaton.org) Task worker for performing execution of Service 
 Tasks in Operaton BPMN processes. It periodically polls the Operaton Task Service for new tasks, handles the execution 
