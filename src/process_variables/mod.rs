@@ -65,6 +65,8 @@ pub struct Entry {
     #[serde(rename = "type")]
     typ: String,
 
+    name: String,
+
     value: serde_json::Value,
 
     #[serde(rename = "valueInfo")]
@@ -112,28 +114,28 @@ impl<'de> Deserialize<'de> for ProcessInstanceVariable {
 }
 
 pub fn parse_process_instance_variables(json_str: &str) -> HashMap<String, ProcessInstanceVariable> {
-    let map: HashMap<String, Entry> = serde_json::from_str(json_str).unwrap_or_else(|_| {
+    let parsed_vector: Vec<Entry>= serde_json::from_str(json_str).unwrap_or_else(|_| {
         error!("Error while parsing \"{}\", ignoring it for now.", json_str);
-        HashMap::new() }
+        vec![] }
     );
     let mut result = HashMap::new();
-    for (key, entry) in map {
-        let var = match entry.typ.as_str() {
-            "Json" => (key, ProcessInstanceVariable::Json(JsonVar {
+    for ( entry) in parsed_vector {
+        let parsed_var = match entry.typ.as_str() {
+            "Json" => ProcessInstanceVariable::Json(JsonVar {
                 json_value: serde_json::from_value(entry.value).unwrap(),
                 value_info: entry.value_info,
-            })),
-            "Boolean" => (key, ProcessInstanceVariable::Boolean(BoolVar {
+            }),
+            "Boolean" => (ProcessInstanceVariable::Boolean(BoolVar {
                 value: serde_json::from_value(entry.value).unwrap(),
                 value_info: entry.value_info,
             })),
-            "String" => (key, ProcessInstanceVariable::String(StringVar {
+            "String" => (ProcessInstanceVariable::String(StringVar {
                 value: serde_json::from_value(entry.value).unwrap(),
                 value_info: entry.value_info,
             })),
             _ => continue,
         };
-        result.insert(var.0, var.1);
+        result.insert(entry.name, parsed_var);
     }
     result
 }
