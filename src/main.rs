@@ -10,6 +10,7 @@ use config::Config;
 use structures::ConfigParams;
 
 use log::{debug, error, warn, log_enabled, info, Level, trace};
+use url::Url;
 use crate::process_variables::ProcessInstanceVariable;
 use crate::structures::ServiceTask;
 
@@ -48,7 +49,7 @@ async fn main() {
                             function().expect("TODO: panic message");
                         },
                         None => {
-                            warn!("No function found for Service Task: {:#?}. SKIP.", service_task.business_key());
+                            warn!("No function found for Service Task: {:#?}. SKIP.", service_task.activity_id());
                         }
                     }
                 );
@@ -100,6 +101,56 @@ async fn get_open_service_tasks(config: &ConfigParams) -> Result<Vec<ServiceTask
             Err(err.into())
         }
     }
+}
+
+fn build_authenticated_request(
+    client: &reqwest::Client,
+    url: Url,
+    username: &str,
+    password: &str,
+) -> reqwest::RequestBuilder {
+    let mut request = client.get(url);
+
+    if !username.is_empty() {
+        request = request.basic_auth(username, Some(password));
+        trace!("Using HTTP Basic authentication");
+    } else {
+        trace!("No HTTP authentication configured (empty username)");
+    }
+
+    request
+}
+
+async fn get_process_instance_variables(
+    config: &ConfigParams,
+) -> Result<Vec<ProcessInstanceVariable>, Box<dyn Error>> {
+    let mut piv_endpoint = config.url().clone();
+    piv_endpoint.set_path("engine-rest/external-task");
+    info!("Fetch data at {}", piv_endpoint);
+
+    let client = reqwest::Client::new();
+    let request = build_authenticated_request(
+        &client,
+        piv_endpoint.clone(),
+        config.username(),
+        config.password(),
+    );
+
+    let response = request.send().await.map_err(|err| {
+        error!(
+            "Error while calling API endpoint '{}': {:#?}",
+            piv_endpoint, err
+        );
+        err
+    })?;
+
+    let pivs: Vec<ProcessInstanceVariable> = response.json().await.map_err(|err| {
+        error!("An error occurred while parsing the JSON: {:#?}", err);
+        err
+    })?;
+
+    trace!("Parsed: {:#?}", pivs);
+    Ok(pivs)
 }
 
 /// Loads the configuration into a [ConfigParams] struct. The function may panic, but it should not

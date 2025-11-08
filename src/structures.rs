@@ -53,12 +53,14 @@ fn default_poll_intervall() -> usize { 500 }
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct ServiceTask {
+    /// The id of the Service Task (called `activityId` in Operaton)
     activity_id: String,
     process_instance_id: String,
     suspended: bool,
     topic_name: String,
     priority: usize,
     business_key: String,
+    worker_id: Option<String>,
 }
 
 impl ServiceTask {
