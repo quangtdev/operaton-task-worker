@@ -4,72 +4,21 @@
 
 mod structures;
 mod process_variables;
+mod types;
+mod api;
+mod registry;
+mod handlers;
+mod settings;
 
 use std::collections::HashMap;
-use std::error::Error;
-use config::Config;
-use structures::ConfigParams;
-
-use log::{debug, error, warn, log_enabled, info, Level, trace};
-use url::Url;
-use crate::process_variables::{ProcessInstanceVariable, parse_process_instance_variables};
-use crate::structures::ServiceTask;
-
-// ===== Types for external task function handling and completion payloads =====
-#[derive(serde::Serialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct OutVariable {
-    #[serde(rename = "value")]
-    pub value: serde_json::Value,
-    #[serde(rename = "type")]
-    pub typ: String,
-    #[serde(rename = "valueInfo")]
-    pub value_info: std::collections::HashMap<String, serde_json::Value>,
-}
-
-pub type InputVariables = std::collections::HashMap<String, crate::process_variables::ProcessInstanceVariable>;
-pub type OutputVariables = std::collections::HashMap<String, OutVariable>;
-pub type ExternalTaskFn = fn(&InputVariables) -> Result<OutputVariables, Box<dyn std::error::Error>>;
-
-fn out_string(value: impl Into<String>) -> OutVariable {
-    OutVariable {
-        value: serde_json::Value::String(value.into()),
-        typ: "String".to_string(),
-        value_info: std::collections::HashMap::new(),
-    }
-}
-
-fn out_bool(value: bool) -> OutVariable {
-    OutVariable {
-        value: serde_json::Value::Bool(value),
-        typ: "Boolean".to_string(),
-        value_info: std::collections::HashMap::new(),
-    }
-}
-
-fn out_json(value: &serde_json::Value) -> OutVariable {
-    let mut value_info = std::collections::HashMap::new();
-    value_info.insert(
-        "serializationDataFormat".to_string(),
-        serde_json::Value::String("application/json".to_string()),
-    );
-    OutVariable {
-        // Camunda 7 expects JSON to be provided as a serialized string with serializationDataFormat
-        value: serde_json::Value::String(value.to_string()),
-        typ: "Json".to_string(),
-        value_info,
-    }
-}
-
-/// The prefix for all environment variables used by Operaton Task Worker
-///
-/// Note: This does not apply for Rust-specific environment variables such as `LOGLEVEL`.
-const ENV_PREFIX: &str = "OPERATON_TASK_WORKER";
+use log::{debug, error, warn, info, trace};
+use crate::process_variables::ProcessInstanceVariable;
+use crate::registry;
 
 #[tokio::main]
 async fn main() {
     // Get the parameters from the environment variables
-    let config = load_config();
+    let config = crate::settings::load_config();
 
     env_logger::init();
 
@@ -82,7 +31,7 @@ async fn main() {
     trace!("Enter the main loop");
 
     loop {
-        match get_open_service_tasks(&config).await {
+        match api::get_open_service_tasks(&config).await {
             Ok(service_tasks) => {
                 info!(
                     "We received {} open external Service Tasks from Operaton.",
@@ -91,7 +40,7 @@ async fn main() {
 
                 for service_task in service_tasks {
                     // Try to lock the specific external task and read its input variables
-                    if let Err(err) = lock_external_task(&config, service_task.id(), 60_000).await {
+                    if let Err(err) = api::lock_external_task(&config, service_task.id(), 60_000).await {
                         warn!("Could not lock task {}: {:#?}", service_task.id(), err);
                         continue;
                     }
@@ -102,25 +51,22 @@ async fn main() {
                     });
                     trace!("External task variables for {} => {:#?}", service_task.id(), input_vars);
 
-                    match map_service_task_to_function(&service_task) {
-                        Some(function) => {
-                            debug!("Executing function for Service Task: {:#?}", service_task);
-                            match function(&input_vars) {
-                                Ok(output_vars) => {
-                                    if let Err(err) = complete_external_task(&config, service_task.id(), output_vars).await {
-                                        error!("Could not complete external task {}: {:#?}", service_task.id(), err);
-                                    } else {
-                                        info!("Completed external task {}", service_task.id());
-                                    }
-                                }
-                                Err(err) => {
-                                    error!("Execution of function for Service Task {} failed: {:#?}", service_task.id(), err);
+                    if let Some(function) = registry::find(service_task.activity_id()) {
+                        debug!("Executing function for Service Task: {:#?}", service_task);
+                        match function(&input_vars) {
+                            Ok(output_vars) => {
+                                if let Err(err) = api::complete_external_task(&config, service_task.id(), output_vars).await {
+                                    error!("Could not complete external task {}: {:#?}", service_task.id(), err);
+                                } else {
+                                    info!("Completed external task {}", service_task.id());
                                 }
                             }
-                        },
-                        None => {
-                            warn!("No function found for Service Task: {:#?}. SKIP.", service_task.activity_id());
+                            Err(err) => {
+                                error!("Execution of function for Service Task {} failed: {:#?}", service_task.id(), err);
+                            }
                         }
+                    } else {
+                        warn!("No function found for Service Task: {:#?}. SKIP.", service_task.activity_id());
                     }
                 };
             },
@@ -132,82 +78,8 @@ async fn main() {
     }
 }
 
-async fn get_open_service_tasks(config: &ConfigParams) -> Result<Vec<ServiceTask>, Box<dyn Error>> {
-    let mut service_tasks_endpoint = config.url().clone();
-    service_tasks_endpoint.set_path("engine-rest/external-task");
-    info!("Fetch data at {}", service_tasks_endpoint.to_string());
 
-    // Build the request with optional Basic Auth when username is provided
-    let client = reqwest::Client::new();
-    let mut request = client.get(service_tasks_endpoint.clone());
 
-    if !config.username().is_empty() {
-        request = request.basic_auth(config.username().to_string(), Some(config.password().to_string()));
-        trace!("Using HTTP Basic authentication");
-    } else {
-        trace!("No HTTP authentication configured (empty username)");
-    }
-
-    match request.send().await {
-        Ok(response) => {
-            match response.json().await {
-                Ok(unwrapped_json) => {
-                    let service_tasks: Vec<ServiceTask> = unwrapped_json;
-                    trace!("Parsed: {:#?}", service_tasks);
-                    Ok(service_tasks)
-                },
-                Err(err) => {
-                    error!("An error occurred while parsing the JSON: {:#?}", err);
-                    Err(err.into())
-                }
-            }
-        },
-        Err(err) => {
-            error!(
-                "Error while calling API endpoint '{}': {:#?}",
-                service_tasks_endpoint.to_string(),
-                err
-            );
-            Err(err.into())
-        }
-    }
-}
-
-fn build_authenticated_request(
-    client: &reqwest::Client,
-    url: Url,
-    username: &str,
-    password: &str,
-) -> reqwest::RequestBuilder {
-    let mut request = client.get(url);
-
-    if !username.is_empty() {
-        request = request.basic_auth(username, Some(password));
-        trace!("Using HTTP Basic authentication");
-    } else {
-        trace!("No HTTP authentication configured (empty username)");
-    }
-
-    request
-}
-
-fn build_authenticated_post(
-    client: &reqwest::Client,
-    url: Url,
-    username: &str,
-    password: &str,
-) -> reqwest::RequestBuilder {
-    let mut request = client.post(url);
-
-    if !username.is_empty() {
-        request = request.basic_auth(username, Some(password));
-        trace!("Using HTTP Basic authentication");
-    } else {
-        trace!("No HTTP authentication configured (empty username)");
-    }
-
-    request
-}
 
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
