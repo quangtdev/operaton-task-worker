@@ -5,6 +5,7 @@ description = "A task worker for running service external tasks with Operaton"
 version = "0.1.2"
 edition = "2024"
 repository = "https://github.com/reckel-jm/operaton-task-worker"
+license = "MIT"
 
 [workspace]
 members = ["operaton-task-worker-macros"]
