@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use log::error;
-use serde::de::Error;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -86,6 +85,7 @@ pub struct Entry {
     typ: String,
 
     #[serde(default)]
+    #[allow(dead_code)]
     name: String,
 
     value: serde_json::Value,
