@@ -1,3 +1,7 @@
+/*
+The crate [operaton_task_worker_macros] provides a proc-macro attribute macro to register an external task handler function with a name (activityId/topic).
+*/
+
 extern crate proc_macro;
 
 use proc_macro::TokenStream;
