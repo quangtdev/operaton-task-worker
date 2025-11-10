@@ -1,58 +1,23 @@
-extern crate proc_macro;
-
 mod polling;
-mod structures;
-mod process_variables;
-mod types;
+pub mod structures;
+pub mod process_variables;
+pub mod types;
 mod api;
-mod registry;
-mod handlers;
+pub mod registry;
+pub mod handlers;
 pub mod settings;
 
-use proc_macro::TokenStream;
-use quote::quote;
-use syn::{parse_macro_input, ItemFn, Meta, Expr, Lit};
+pub use inventory;
+
 use crate::structures::ConfigParams;
 
-pub fn poll(config: ConfigParams) {
-
+/// Start the polling loop asynchronously. Call this inside a Tokio runtime.
+pub async fn poll(config: ConfigParams) {
+    polling::start_polling_loop(config).await;
 }
 
-/// Attribute macro to register an external task handler function with a name (activityId/topic).
-/// Usage: `#[task_handler(name = "example_echo")]`
-#[proc_macro_attribute]
-pub fn task_handler(attr: TokenStream, item: TokenStream) -> TokenStream {
-    // Accept a single name-value meta: name = "..."
-    let meta = parse_macro_input!(attr as Meta);
-    let input_fn = parse_macro_input!(item as ItemFn);
-
-    let name_value = match meta {
-        Meta::NameValue(nv) if nv.path.is_ident("name") => match nv.value {
-            Expr::Lit(expr_lit) => match expr_lit.lit {
-                Lit::Str(s) => s.value(),
-                _ => panic!("#[task_handler] expects name to be a string literal: name = \"...\""),
-            },
-            _ => panic!("#[task_handler] expects name to be a string literal: name = \"...\""),
-        },
-        _ => panic!("#[task_handler] requires syntax: #[task_handler(name = \"...\")]"),
-    };
-
-    let fn_ident = input_fn.sig.ident.clone();
-
-    // Emit original function unchanged + inventory registration in the using crate's context
-    let expanded = quote! {
-        #input_fn
-
-        const _: () = {
-            // Ensure `inventory` is linked and submit this handler
-            inventory::submit! {
-                crate::registry::Handler {
-                    name: #name_value,
-                    func: #fn_ident,
-                }
-            }
-        };
-    };
-
-    TokenStream::from(expanded)
+/// Convenience: start the polling loop and block the current thread until it ends (infinite loop).
+pub fn poll_blocking(config: ConfigParams) {
+    let rt = tokio::runtime::Runtime::new().expect("failed to create Tokio runtime");
+    rt.block_on(async move { polling::start_polling_loop(config).await });
 }
