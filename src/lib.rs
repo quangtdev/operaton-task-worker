@@ -1,8 +1,22 @@
 extern crate proc_macro;
 
+mod polling;
+mod structures;
+mod process_variables;
+mod types;
+mod api;
+mod registry;
+mod handlers;
+pub mod settings;
+
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, ItemFn, Meta, Expr, Lit};
+use crate::structures::ConfigParams;
+
+pub fn poll(config: ConfigParams) {
+
+}
 
 /// Attribute macro to register an external task handler function with a name (activityId/topic).
 /// Usage: `#[task_handler(name = "example_echo")]`

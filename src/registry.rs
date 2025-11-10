@@ -1,3 +1,5 @@
+extern crate proc_macro;
+
 use crate::types::ExternalTaskFn;
 
 pub struct Handler {
@@ -23,12 +25,6 @@ pub fn all_names() -> Vec<&'static str> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    // Define a dummy handler via the attribute macro and assert it is discoverable
-    #[operaton_task_worker_macros::task_handler(name = "__test_handler__example__")]
-    fn test_handler(_input: &crate::types::InputVariables) -> Result<crate::types::OutputVariables, Box<dyn std::error::Error>> {
-        Ok(std::collections::HashMap::new())
-    }
 
     #[test]
     fn registry_finds_macro_registered_handler() {
