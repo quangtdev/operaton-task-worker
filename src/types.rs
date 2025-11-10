@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::process_variables::ProcessInstanceVariable;
+use crate::structures::process_variables::ProcessInstanceVariable;
 
 #[derive(serde::Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]

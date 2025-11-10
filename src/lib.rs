@@ -19,7 +19,6 @@ Camunda 7 is not supported, however, at the current state, it should be possible
 
 mod polling;
 pub mod structures;
-pub mod process_variables;
 pub mod types;
 mod api;
 pub mod registry;
@@ -28,7 +27,7 @@ pub mod settings;
 pub use inventory;
 pub use operaton_task_worker_macros::task_handler;
 
-use crate::structures::ConfigParams;
+use crate::settings::ConfigParams;
 
 /// Start the polling loop asynchronously. Call this inside a Tokio runtime.
 pub async fn poll(config: ConfigParams) {

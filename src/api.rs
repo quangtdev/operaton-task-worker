@@ -4,9 +4,10 @@ use std::error::Error;
 use log::{error, info, trace};
 use url::Url;
 
-use crate::process_variables::{parse_process_instance_variables, ProcessInstanceVariable};
-use crate::structures::{ConfigParams, ServiceTask};
+use crate::settings::ConfigParams;
+use crate::structures::process_variables::{parse_process_instance_variables, ProcessInstanceVariable};
 use crate::types::OutputVariables;
+use crate::structures::service_task::ServiceTask;
 
 pub async fn get_open_service_tasks(config: &ConfigParams) -> Result<Vec<ServiceTask>, Box<dyn Error>> {
     let mut service_tasks_endpoint = config.url().clone();

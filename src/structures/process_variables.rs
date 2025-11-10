@@ -1,8 +1,7 @@
 use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
 use log::error;
-/// This module handles Process Variables and their different kinds
-
-use serde::*;
+use serde::de::Error;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -39,7 +38,7 @@ pub struct JsonVar {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BoolVar {
     pub value: bool,
-    
+
     #[serde(rename = "valueInfo")]
     pub value_info: HashMap<String, serde_json::Value>,
 }
@@ -136,7 +135,7 @@ impl<'de> Deserialize<'de> for ProcessInstanceVariable {
 }
 
 pub fn parse_process_instance_variables(json_str: &str) -> HashMap<String, ProcessInstanceVariable> {
-    // According to Camunda 7/Operaton, the variables endpoint returns an object map of name -> { type, value, valueInfo }
+    // According to Camunda 7/Operaton, the variable endpoint returns an object map of name -> { type, value, valueInfo }
     let parsed_map: HashMap<String, Entry> = serde_json::from_str(json_str).unwrap_or_else(|_| {
         error!("Error while parsing \"{}\", ignoring it for now.", json_str);
         HashMap::new()
@@ -165,7 +164,7 @@ pub fn parse_process_instance_variables(json_str: &str) -> HashMap<String, Proce
 
 #[cfg(test)]
 mod test {
-    use crate::process_variables::parse_process_instance_variables;
+    use crate::structures::process_variables::parse_process_instance_variables;
 
     #[test]
     fn test_module_parsing() {

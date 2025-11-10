@@ -3,8 +3,8 @@
 use std::collections::HashMap;
 use log::{debug, error, info, trace, warn};
 use crate::{api, registry};
-use crate::process_variables::ProcessInstanceVariable;
-use crate::structures::ConfigParams;
+use crate::structures::process_variables::ProcessInstanceVariable;
+use crate::settings::ConfigParams;
 use crate::types::BpmnError;
 
 pub async fn start_polling_loop(config: ConfigParams) {
