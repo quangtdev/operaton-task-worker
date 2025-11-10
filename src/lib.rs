@@ -1,4 +1,4 @@
-/**
+/*!
 # Operaton Task Worker: A Rust library for external task polling and execution from Operaton
 
 This crate provides functionality to poll external tasks from the Operaton BPMN engine and execute them via a handler function.
@@ -21,7 +21,7 @@ Running a task worker with this crate is intended to be very easy and involves t
 
 A minimal working axample of a task worker with one handler function looks like this:
 
-```rust
+```ignore
 use operaton_task_worker::{poll, settings};
 use operaton_task_worker_macros::task_handler;
 
@@ -70,6 +70,7 @@ let config = load_config_from_env("OPERATON_TASK_WORKER"); // or use any other p
 #### Using the builder pattern
 ```rust
 use operaton_task_worker::settings::ConfigParams;
+use url::Url;
 
 let config = ConfigParams::default()
     .with_url(Url::parse("http://localhost:8080").unwrap())
@@ -102,7 +103,7 @@ The values are deserialized and are statically typed according to the type of th
 - For technical failures, return any other error; the worker calls `/external-task/{id}/failure` with `retries=0`.
 
 
- */
+**/
 
 mod polling;
 pub mod structures;
