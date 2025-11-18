@@ -12,7 +12,7 @@ pub struct ServiceTask {
     suspended: bool,
     topic_name: String,
     priority: usize,
-    business_key: String,
+    business_key: Option<String>,
     worker_id: Option<String>,
 }
 
@@ -39,7 +39,7 @@ impl ServiceTask {
         self.priority
     }
 
-    pub fn business_key(&self) -> &str {
-        &self.business_key
+    pub fn business_key(&self) -> Option<String> {
+        self.business_key.clone()
     }
 }
