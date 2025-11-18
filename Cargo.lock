@@ -935,7 +935,7 @@ dependencies = [
 
 [[package]]
 name = "operaton-task-worker"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "config",
  "env_logger",
